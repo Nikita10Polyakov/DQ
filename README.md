@@ -22,15 +22,25 @@ DungeonQuill — це веб-сервіс для створення сюжетн
 ---
 
 DungeonQuill/
+
 ├── backend/ # Django API (auth + story arcs)
+
 │ ├── core/ # Налаштування
+
 │ ├── users/ # Кастомна модель користувача
+
 │ ├── story/ # Сюжетні арки
+
 │ └── db.sqlite3 # (у .gitignore)
+
 ├── frontend/ # React SPA (login, story arcs UI)
+
 │ └── src/
+
 │ ├── api/
+
 │ └── pages/
+
 └── README.md
 
 ---
@@ -44,24 +54,32 @@ cd backend
 python -m venv venv
 venv\Scripts\activate      # або source venv/bin/activate на Mac/Linux
 pip install -r requirements.txt
+```
 
 # Міграції та суперкористувач
+
+```bash
 python manage.py makemigrations
 python manage.py migrate
 python manage.py createsuperuser
+```
 
 # Запуск сервера
+```bash
 python manage.py runserver
+```
 
 📍 API: http://localhost:8000
 📍 Адмінка: http://localhost:8000/admin
 📍 JWT login: POST /auth/jwt/create/
 
-⚛️ 2. Frontend (React)
+### ⚛️ 2. Frontend (React)
 
+```bash
 cd frontend
 npm install
 npm start
+```
 
 
 📍 Frontend: http://localhost:3000
