@@ -16,3 +16,12 @@ export const createStoryArc = async (data) => {
   const res = await axios.post(API_URL, data, getAuthHeader());
   return res.data;
 };
+
+export const updateStoryArc = async (id, data) => {
+  const res = await axios.put(`http://localhost:8000/api/story-arcs/${id}/`, data, getAuthHeader());
+  return res.data;
+};
+
+export const deleteStoryArc = async (id) => {
+  await axios.delete(`http://localhost:8000/api/story-arcs/${id}/`, getAuthHeader());
+};

@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import ReactFlow, {
   addEdge,
   useNodesState,
@@ -7,10 +7,10 @@ import ReactFlow, {
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import EditableNode from '../components/EditableNode';
-import { ReactFlowProvider } from 'reactflow';
+import { useParams } from 'react-router-dom';
 
 const nodeTypes = { editable: EditableNode };
-let id = 2; // Починаємо з 2, бо 1 — вже є
+let id = 2;
 const getId = () => (id++).toString();
 
 const initialNodes = [
@@ -23,24 +23,39 @@ const initialNodes = [
 ];
 
 export default function StoryArcEditorPage() {
+  const { id: arcId } = useParams();
+
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
 
-  const onNodeLabelChange = useCallback((id, newLabel) => {
-    setNodes((nds) =>
-      nds.map((node) =>
-        node.id === id
-          ? { ...node, data: { ...node.data, label: newLabel, onChange: onNodeLabelChange } }
-          : node
-      )
-    );
-  }, [setNodes]);
+  const onNodeLabelChange = useCallback(
+    (id, newLabel) => {
+      setNodes((nds) =>
+        nds.map((node) =>
+          node.id === id
+            ? {
+                ...node,
+                data: {
+                  ...node.data,
+                  label: newLabel,
+                  onChange: onNodeLabelChange,
+                },
+              }
+            : node
+        )
+      );
+    },
+    [setNodes]
+  );
 
   const addNode = useCallback(
     (typeLabel) => {
       const newNode = {
         id: getId(),
-        position: { x: Math.random() * 400 + 100, y: Math.random() * 300 + 100 },
+        position: {
+          x: Math.random() * 400 + 100,
+          y: Math.random() * 300 + 100,
+        },
         data: { label: typeLabel, onChange: onNodeLabelChange },
         type: 'editable',
       };
@@ -54,12 +69,20 @@ export default function StoryArcEditorPage() {
     [setEdges]
   );
 
+  useEffect(() => {
+    console.log(`Відкрито редактор арки ID = ${arcId}`);
+    // TODO: тут можна завантажити вузли з бекенду за arcId
+  }, [arcId]);
+
   return (
     <div style={{ height: '100vh' }}>
-      <div style={{ padding: 10 }}>
+      <div style={toolbarStyle}>
         <button onClick={() => addNode('Сцена')}>+ Сцена</button>
         <button onClick={() => addNode('NPC')}>+ NPC</button>
         <button onClick={() => addNode('Подія')}>+ Подія</button>
+        <span style={{ marginLeft: 'auto', opacity: 0.7 }}>
+          🧠 Арка #{arcId}
+        </span>
       </div>
 
       <ReactFlow
@@ -76,3 +99,11 @@ export default function StoryArcEditorPage() {
     </div>
   );
 }
+
+const toolbarStyle = {
+  display: 'flex',
+  gap: '1rem',
+  padding: '1rem',
+  background: '#f4f4f4',
+  borderBottom: '1px solid #ddd',
+};
