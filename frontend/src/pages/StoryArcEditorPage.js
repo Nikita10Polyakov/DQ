@@ -200,6 +200,26 @@ export default function StoryArcEditorPage() {
     }
   };
 
+  const handleExportJSON = () => {
+  const data = {
+    title: arcTitle,
+    author: 'unknown',
+    nodes,
+    edges,
+  };
+
+  const json = JSON.stringify(data, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `${arcTitle || 'story-arc'}.json`;
+  link.click();
+
+  URL.revokeObjectURL(url);
+};
+
   useEffect(() => {
     const loadArc = async () => {
       try {
@@ -269,7 +289,10 @@ export default function StoryArcEditorPage() {
         <button style={toolbarButton} onClick={() => addNode('Подія')}>+ Подія</button>
         <button style={toolbarButton} onClick={handleUndo} disabled={history.length === 0}>↩️ Undo</button>
         <button style={toolbarButton} onClick={handleRedo} disabled={redoStack.length === 0}>↪️ Redo</button>
-        <button style={toolbarButton} onClick={saveGraph}>💾 Зберегти граф</button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <button style={toolbarButton} onClick={saveGraph}>💾 Зберегти граф</button>
+          <button style={exportButtonStyle} onClick={handleExportJSON}>📥 Експорт у JSON</button>
+        </div>
         <div style={arcInfoStyle}>
           {isEditingTitle ? (
             <input
@@ -362,4 +385,14 @@ const titleInputStyle = {
   border: '1px solid #ccc',
   borderRadius: '6px',
   width: '200px',
+};
+
+const exportButtonStyle = {
+  ...toolbarButton,
+  background: '#00b894',
+  color: 'white',
+  display: 'flex',
+  alignItems: 'center',
+  fontWeight: 'bold',
+  fontSize: '0.9rem',  
 };
