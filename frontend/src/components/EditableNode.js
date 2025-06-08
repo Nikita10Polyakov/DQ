@@ -49,7 +49,13 @@ const EditableNode = ({ data, id, selected }) => {
         <input
           value={label}
           onChange={(e) => setLabel(e.target.value)}
-          onBlur={handleBlur}
+          onBlur={() => {
+            handleBlur();
+            data.onBlur?.(); // сповістити, що фокус втрачено
+          }}
+          onFocus={() => {
+            data.onFocus?.(); // сповістити, що фокус отримано
+          }}
           autoFocus
         />
       ) : (

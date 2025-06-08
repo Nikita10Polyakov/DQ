@@ -39,26 +39,30 @@ export default function StoryArcEditorPage() {
 
   const [selectedEdges, setSelectedEdges] = useState([]);
   const [selectedNodes, setSelectedNodes] = useState([]);
+
+  const [isEditingLabel, setIsEditingLabel] = useState(false);
   
   const onNodeLabelChange = useCallback(
-    (id, newLabel) => {
-      setNodes((nds) =>
-        nds.map((node) =>
-          node.id === id
-            ? {
-                ...node,
-                data: {
-                  ...node.data,
-                  label: newLabel,
-                  onChange: onNodeLabelChange,
-                },
-              }
-            : node
-        )
-      );
-    },
-    [setNodes]
-  );
+  (id, newLabel) => {
+    setNodes((nds) =>
+      nds.map((node) =>
+        node.id === id
+          ? {
+              ...node,
+              data: {
+                ...node.data,
+                label: newLabel,
+                onChange: onNodeLabelChange,
+                onFocus: () => setIsEditingLabel(true),
+                onBlur: () => setIsEditingLabel(false),
+              },
+            }
+          : node
+      )
+    );
+  },
+  [setNodes]
+);
 
   const addNode = useCallback(
     (typeLabel) => {
@@ -73,6 +77,8 @@ export default function StoryArcEditorPage() {
           label: typeLabel,
           type: type,
           onChange: onNodeLabelChange,
+          onFocus: () => setIsEditingLabel(true),
+          onBlur: () => setIsEditingLabel(false),
         },
         type: 'editable',
       };
@@ -156,7 +162,7 @@ export default function StoryArcEditorPage() {
 
   useEffect(() => {
   const handleKeyDown = (e) => {
-    if (e.key === 'Delete') {
+    if ((e.key === 'Delete' || e.key === 'Backspace') && !isEditingLabel) {
       // Видалення стрілок
       if (selectedEdges.length > 0) {
         setEdges((eds) =>
