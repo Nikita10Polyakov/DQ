@@ -25,3 +25,13 @@ export const updateStoryArc = async (id, data) => {
 export const deleteStoryArc = async (id) => {
   await axios.delete(`http://localhost:8000/api/story-arcs/${id}/`, getAuthHeader());
 };
+
+export const fetchStoryArc = async (id) => {
+  try {
+    const res = await axios.get(`${API_URL}${id}/`, getAuthHeader());
+    return res.data;
+  } catch (error) {
+    console.error('Помилка при завантаженні арки:', error.response?.status, error.response?.data);
+    throw error;
+  }
+};

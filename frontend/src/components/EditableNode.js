@@ -17,3 +17,23 @@ export default function EditableNode({ id, data, isConnectable }) {
     </div>
   );
 }
+
+const nodeStyle = {
+  padding: '0.5rem',
+  border: '2px solid #6c5ce7',
+  borderRadius: '8px',
+  background: '#fff',
+  minWidth: '130px',
+  textAlign: 'center',
+  boxShadow: '0 2px 6px rgba(0,0,0,0.08)',
+};
+
+const inputStyle = {
+  border: 'none',
+  background: 'transparent',
+  fontWeight: 'bold',
+  fontSize: '0.95rem',
+  width: '100%',
+  textAlign: 'center',
+  outline: 'none',
+};

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import ReactFlow, {
   addEdge,
   useNodesState,
@@ -7,7 +7,8 @@ import ReactFlow, {
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import EditableNode from '../components/EditableNode';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
+import { fetchStoryArc } from '../api/storyarc';
 
 const nodeTypes = { editable: EditableNode };
 let id = 2;
@@ -24,6 +25,8 @@ const initialNodes = [
 
 export default function StoryArcEditorPage() {
   const { id: arcId } = useParams();
+  const navigate = useNavigate();
+  const [arcTitle, setArcTitle] = useState('');
 
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
@@ -70,40 +73,92 @@ export default function StoryArcEditorPage() {
   );
 
   useEffect(() => {
-    console.log(`Відкрито редактор арки ID = ${arcId}`);
-    // TODO: тут можна завантажити вузли з бекенду за arcId
-  }, [arcId]);
+  const loadArc = async () => {
+    try {
+      const data = await fetchStoryArc(arcId);
+      console.log('✅ Отримано арку:', data);
+      setArcTitle(data.title);
+    } catch (error) {
+      console.error('❌ Не вдалося завантажити арку');
+    }
+  };
+
+  loadArc();
+}, [arcId]);
 
   return (
-    <div style={{ height: '100vh' }}>
+    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
       <div style={toolbarStyle}>
-        <button onClick={() => addNode('Сцена')}>+ Сцена</button>
-        <button onClick={() => addNode('NPC')}>+ NPC</button>
-        <button onClick={() => addNode('Подія')}>+ Подія</button>
-        <span style={{ marginLeft: 'auto', opacity: 0.7 }}>
-          🧠 Арка #{arcId}
+        <button
+          onClick={() => navigate('/story-arcs')}
+          style={backButtonStyle}
+        >
+          ← Назад
+        </button>
+
+        <button style={toolbarButton} onClick={() => addNode('Сцена')}>
+          + Сцена
+        </button>
+        <button style={toolbarButton} onClick={() => addNode('NPC')}>
+          + NPC
+        </button>
+        <button style={toolbarButton} onClick={() => addNode('Подія')}>
+          + Подія
+        </button>
+
+        <span style={arcInfoStyle}>
+          🎯 {arcTitle ? arcTitle : 'Завантаження...'}
         </span>
       </div>
 
-      <ReactFlow
-        nodeTypes={nodeTypes}
-        nodes={nodes}
-        edges={edges}
-        onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
-        onConnect={onConnect}
-        fitView
-      >
-        <Controls />
-      </ReactFlow>
+      <div style={{ flex: 1 }}>
+        <ReactFlow
+          nodeTypes={nodeTypes}
+          nodes={nodes}
+          edges={edges}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
+          onConnect={onConnect}
+          fitView
+        >
+          <Controls />
+        </ReactFlow>
+      </div>
     </div>
   );
 }
 
+// === СТИЛІ ===
+
 const toolbarStyle = {
   display: 'flex',
-  gap: '1rem',
-  padding: '1rem',
-  background: '#f4f4f4',
-  borderBottom: '1px solid #ddd',
+  alignItems: 'center',
+  gap: '0.75rem',
+  padding: '0.75rem 1rem',
+  background: '#f8f9fa',
+  borderBottom: '1px solid #ccc',
+  boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+};
+
+const toolbarButton = {
+  padding: '0.5rem 0.9rem',
+  background: '#6c5ce7',
+  color: 'white',
+  border: 'none',
+  borderRadius: '6px',
+  fontWeight: 'bold',
+  cursor: 'pointer',
+  transition: 'background 0.2s ease',
+};
+
+const backButtonStyle = {
+  ...toolbarButton,
+  background: '#b2bec3',
+};
+
+const arcInfoStyle = {
+  marginLeft: 'auto',
+  fontStyle: 'italic',
+  color: '#636e72',
+  fontSize: '1rem',
 };
