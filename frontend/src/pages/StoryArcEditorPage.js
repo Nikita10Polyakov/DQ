@@ -41,9 +41,12 @@ export default function StoryArcEditorPage() {
   const [selectedNodes, setSelectedNodes] = useState([]);
 
   const [isEditingLabel, setIsEditingLabel] = useState(false);
+
+  const [history, setHistory] = useState([]);
   
   const onNodeLabelChange = useCallback(
   (id, newLabel) => {
+    pushToHistory();
     setNodes((nds) =>
       nds.map((node) =>
         node.id === id
@@ -66,16 +69,14 @@ export default function StoryArcEditorPage() {
 
   const addNode = useCallback(
     (typeLabel) => {
+      pushToHistory(); // 💾 Зберігаємо перед зміною
       const type = typeLabel === 'Сцена' ? 'scene' : typeLabel === 'NPC' ? 'npc' : 'event';
       const newNode = {
         id: getId(),
-        position: {
-          x: Math.random() * 400 + 100,
-          y: Math.random() * 300 + 100,
-        },
+        position: { x: Math.random() * 400 + 100, y: Math.random() * 300 + 100 },
         data: {
           label: typeLabel,
-          type: type,
+          type,
           onChange: onNodeLabelChange,
           onFocus: () => setIsEditingLabel(true),
           onBlur: () => setIsEditingLabel(false),
@@ -88,7 +89,8 @@ export default function StoryArcEditorPage() {
   );
 
   const onConnect = useCallback(
-    (params) =>
+    (params) => {
+      pushToHistory();
       setEdges((eds) =>
         addEdge(
           {
@@ -102,12 +104,14 @@ export default function StoryArcEditorPage() {
           },
           eds
         )
-      ),
+      );
+    },
     [setEdges]
   );
 
   const onEdgesDelete = useCallback(
     (edgesToRemove) => {
+      pushToHistory();
       setEdges((eds) =>
         eds.filter((e) => !edgesToRemove.some((r) => r.id === e.id))
       );
@@ -138,6 +142,18 @@ export default function StoryArcEditorPage() {
     }
   };
 
+  const pushToHistory = () => {
+    setHistory((prev) => [...prev, { nodes, edges }]);
+  };
+
+  const handleUndo = () => {
+    if (history.length === 0) return;
+    const last = history[history.length - 1];
+    setNodes(last.nodes);
+    setEdges(last.edges);
+    setHistory((prev) => prev.slice(0, -1));
+  };
+
   useEffect(() => {
     const loadArc = async () => {
       try {
@@ -163,6 +179,7 @@ export default function StoryArcEditorPage() {
   useEffect(() => {
   const handleKeyDown = (e) => {
     if ((e.key === 'Delete' || e.key === 'Backspace') && !isEditingLabel) {
+      pushToHistory();
       // Видалення стрілок
       if (selectedEdges.length > 0) {
         setEdges((eds) =>
@@ -216,6 +233,10 @@ export default function StoryArcEditorPage() {
         </button>
         <button style={toolbarButton} onClick={() => addNode('Подія')}>
           + Подія
+        </button>
+
+        <button style={toolbarButton} onClick={handleUndo} disabled={history.length === 0}>
+          ↩️ Undo
         </button>
 
         <button style={toolbarButton} onClick={saveGraph}>
