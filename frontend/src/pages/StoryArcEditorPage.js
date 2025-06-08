@@ -4,6 +4,9 @@ import ReactFlow, {
   useNodesState,
   useEdgesState,
   Controls,
+  Background,
+  MiniMap,
+  MarkerType,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import EditableNode from '../components/EditableNode';
@@ -31,9 +34,11 @@ export default function StoryArcEditorPage() {
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [newTitle, setNewTitle] = useState('');
 
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
+  const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
 
+  const [selectedEdges, setSelectedEdges] = useState([]);
+  
   const onNodeLabelChange = useCallback(
     (id, newLabel) => {
       setNodes((nds) =>
@@ -56,6 +61,7 @@ export default function StoryArcEditorPage() {
 
   const addNode = useCallback(
     (typeLabel) => {
+      const type = typeLabel === 'Сцена' ? 'scene' : typeLabel === 'NPC' ? 'npc' : 'event';
       const newNode = {
         id: getId(),
         position: {
@@ -64,12 +70,7 @@ export default function StoryArcEditorPage() {
         },
         data: {
           label: typeLabel,
-          type:
-            typeLabel === 'Сцена'
-              ? 'scene'
-              : typeLabel === 'NPC'
-              ? 'npc'
-              : 'event',
+          type: type,
           onChange: onNodeLabelChange,
         },
         type: 'editable',
@@ -80,7 +81,30 @@ export default function StoryArcEditorPage() {
   );
 
   const onConnect = useCallback(
-    (params) => setEdges((eds) => addEdge(params, eds)),
+    (params) =>
+      setEdges((eds) =>
+        addEdge(
+          {
+            ...params,
+            markerEnd: {
+              type: MarkerType.ArrowClosed,
+              width: 20,
+              height: 20,
+              color: '#636e72',
+            },
+          },
+          eds
+        )
+      ),
+    [setEdges]
+  );
+
+  const onEdgesDelete = useCallback(
+    (edgesToRemove) => {
+      setEdges((eds) =>
+        eds.filter((e) => !edgesToRemove.some((r) => r.id === e.id))
+      );
+    },
     [setEdges]
   );
 
@@ -98,42 +122,51 @@ export default function StoryArcEditorPage() {
   };
 
   const saveGraph = async () => {
-  try {
-    await updateStoryArc(arcId, {
-      graph_json: {
-        nodes,
-        edges,
-      },
-    });
-    alert('Граф збережено ✅');
-  } catch (error) {
-    console.error('Помилка збереження графа:', error);
-    alert('❌ Не вдалося зберегти граф');
-  }
-};
-
-useEffect(() => {
-  const loadArc = async () => {
     try {
-      const data = await fetchStoryArc(arcId);
-      setArcTitle(data.title);
-      setNewTitle(data.title);
-
-      // Якщо є збережений граф — відновлюємо
-      if (data.graph_json) {
-        setNodes(data.graph_json.nodes || []);
-        setEdges(data.graph_json.edges || []);
-      } else {
-        setNodes(initialNodes);
-        setEdges([]);
-      }
+      await updateStoryArc(arcId, { graph_json: { nodes, edges } });
+      alert('Граф збережено ✅');
     } catch (error) {
-      console.error('Помилка завантаження арки:', error);
+      console.error('Помилка збереження графа:', error);
+      alert('❌ Не вдалося зберегти граф');
     }
   };
 
-  loadArc();
-}, [arcId]);
+  useEffect(() => {
+    const loadArc = async () => {
+      try {
+        const data = await fetchStoryArc(arcId);
+        setArcTitle(data.title);
+        setNewTitle(data.title);
+
+        if (data.graph_json) {
+          setNodes(data.graph_json.nodes || []);
+          setEdges(data.graph_json.edges || []);
+        } else {
+          setNodes(initialNodes);
+          setEdges([]);
+        }
+      } catch (error) {
+        console.error('Помилка завантаження арки:', error);
+      }
+    };
+
+    loadArc();
+  }, [arcId]);
+
+
+  useEffect(() => {
+  const handleKeyDown = (e) => {
+    if (e.key === 'Delete' && selectedEdges.length > 0) {
+      setEdges((eds) =>
+        eds.filter((e) => !selectedEdges.some((sel) => sel.id === e.id))
+      );
+    }
+  };
+
+  window.addEventListener('keydown', handleKeyDown);
+  return () => window.removeEventListener('keydown', handleKeyDown);
+}, [selectedEdges, setEdges]);
+
 
   return (
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
@@ -151,7 +184,10 @@ useEffect(() => {
         <button style={toolbarButton} onClick={() => addNode('Подія')}>
           + Подія
         </button>
-        <button style={toolbarButton} onClick={saveGraph}>💾 Зберегти граф</button>
+
+        <button style={toolbarButton} onClick={saveGraph}>
+          💾 Зберегти граф
+        </button>
 
         <div style={arcInfoStyle}>
           {isEditingTitle ? (
@@ -176,17 +212,29 @@ useEffect(() => {
         </div>
       </div>
 
-      <div style={{ flex: 1 }}>
+      <div style={{ flex: 1 }} tabIndex={0}>
         <ReactFlow
           nodeTypes={nodeTypes}
           nodes={nodes}
           edges={edges}
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
+          onEdgesDelete={onEdgesDelete}
           onConnect={onConnect}
           fitView
+          selectNodesOnDrag={true}
+          nodesDraggable={true}
+          edgesUpdatable={true}
+          onSelectionChange={({ nodes, edges }) => {
+            setSelectedEdges(edges);
+            console.log('🔎 Виділено вузли:', nodes);
+            console.log('🔗 Виділено стрілки:', edges);
+          }}
+
         >
           <Controls />
+          <MiniMap />
+          <Background />
         </ReactFlow>
       </div>
     </div>
