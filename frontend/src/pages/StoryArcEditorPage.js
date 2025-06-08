@@ -62,7 +62,16 @@ export default function StoryArcEditorPage() {
           x: Math.random() * 400 + 100,
           y: Math.random() * 300 + 100,
         },
-        data: { label: typeLabel, onChange: onNodeLabelChange },
+        data: {
+          label: typeLabel,
+          type:
+            typeLabel === 'Сцена'
+              ? 'scene'
+              : typeLabel === 'NPC'
+              ? 'npc'
+              : 'event',
+          onChange: onNodeLabelChange,
+        },
         type: 'editable',
       };
       setNodes((nds) => [...nds, newNode]);

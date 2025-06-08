@@ -1,39 +1,62 @@
 import React, { useState } from 'react';
-import { Handle } from 'reactflow';
+import { Handle, Position } from 'reactflow';
 
-export default function EditableNode({ id, data, isConnectable }) {
+const EditableNode = ({ data, id }) => {
+  const [editing, setEditing] = useState(false);
   const [label, setLabel] = useState(data.label);
 
+  const handleBlur = () => {
+    setEditing(false);
+    data.onChange?.(id, label);
+  };
+
+  const borderColor = {
+    scene: '#0984e3', // синій
+    npc: '#6c5ce7',   // фіолетовий
+    event: '#fdcb6e', // жовтий
+  }[data.type] || '#636e72';
+
+  const background = {
+    scene: '#dfe6e9',
+    npc: '#e4d7f5',
+    event: '#fff3bf',
+  }[data.type] || '#ffffff';
+
+  const emoji = {
+    scene: '📘',
+    npc: '🧙‍♂️',
+    event: '🎲',
+  }[data.type] || '📍';
+
   return (
-    <div style={{ padding: 10, border: '1px solid #222', borderRadius: 8, background: 'white' }}>
-      <input
-        value={label}
-        onChange={(e) => setLabel(e.target.value)}
-        onBlur={() => data.onChange(id, label)}
-        style={{ width: 150, border: 'none', outline: 'none' }}
-      />
-      <Handle type="target" position="top" isConnectable={isConnectable} />
-      <Handle type="source" position="bottom" isConnectable={isConnectable} />
+    <div
+      style={{
+        border: `2px solid ${borderColor}`,
+        padding: 10,
+        borderRadius: 8,
+        background,
+        minWidth: 120,
+        textAlign: 'center',
+        fontWeight: 500,
+        fontSize: '0.9rem',
+        boxShadow: '0 2px 5px rgba(0,0,0,0.1)',
+      }}
+      onDoubleClick={() => setEditing(true)}
+    >
+      {editing ? (
+        <input
+          value={label}
+          onChange={(e) => setLabel(e.target.value)}
+          onBlur={handleBlur}
+          autoFocus
+        />
+      ) : (
+        <span>{emoji} {label}</span>
+      )}
+      <Handle type="target" position={Position.Top} style={{ background: '#ccc' }} />
+      <Handle type="source" position={Position.Bottom} style={{ background: '#ccc' }} />
     </div>
   );
-}
-
-const nodeStyle = {
-  padding: '0.5rem',
-  border: '2px solid #6c5ce7',
-  borderRadius: '8px',
-  background: '#fff',
-  minWidth: '130px',
-  textAlign: 'center',
-  boxShadow: '0 2px 6px rgba(0,0,0,0.08)',
 };
 
-const inputStyle = {
-  border: 'none',
-  background: 'transparent',
-  fontWeight: 'bold',
-  fontSize: '0.95rem',
-  width: '100%',
-  textAlign: 'center',
-  outline: 'none',
-};
+export default EditableNode;
