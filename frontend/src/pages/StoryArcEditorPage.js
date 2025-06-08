@@ -8,7 +8,7 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 import EditableNode from '../components/EditableNode';
 import { useParams, useNavigate } from 'react-router-dom';
-import { fetchStoryArc } from '../api/storyarc';
+import { fetchStoryArc, updateStoryArc } from '../api/storyarc';
 
 const nodeTypes = { editable: EditableNode };
 let id = 2;
@@ -26,7 +26,10 @@ const initialNodes = [
 export default function StoryArcEditorPage() {
   const { id: arcId } = useParams();
   const navigate = useNavigate();
+
   const [arcTitle, setArcTitle] = useState('');
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [newTitle, setNewTitle] = useState('');
 
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
@@ -72,27 +75,37 @@ export default function StoryArcEditorPage() {
     [setEdges]
   );
 
-  useEffect(() => {
-  const loadArc = async () => {
+  const saveTitle = async () => {
     try {
-      const data = await fetchStoryArc(arcId);
-      console.log('✅ Отримано арку:', data);
-      setArcTitle(data.title);
+      if (newTitle.trim() && newTitle !== arcTitle) {
+        await updateStoryArc(arcId, { title: newTitle });
+        setArcTitle(newTitle);
+      }
     } catch (error) {
-      console.error('❌ Не вдалося завантажити арку');
+      console.error('Помилка оновлення назви арки:', error);
+    } finally {
+      setIsEditingTitle(false);
     }
   };
 
-  loadArc();
-}, [arcId]);
+  useEffect(() => {
+    const loadArc = async () => {
+      try {
+        const data = await fetchStoryArc(arcId);
+        setArcTitle(data.title);
+        setNewTitle(data.title);
+      } catch (error) {
+        console.error('Помилка завантаження арки:', error);
+      }
+    };
+
+    loadArc();
+  }, [arcId]);
 
   return (
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
       <div style={toolbarStyle}>
-        <button
-          onClick={() => navigate('/story-arcs')}
-          style={backButtonStyle}
-        >
+        <button onClick={() => navigate('/story-arcs')} style={backButtonStyle}>
           ← Назад
         </button>
 
@@ -106,9 +119,27 @@ export default function StoryArcEditorPage() {
           + Подія
         </button>
 
-        <span style={arcInfoStyle}>
-          🎯 {arcTitle ? arcTitle : 'Завантаження...'}
-        </span>
+        <div style={arcInfoStyle}>
+          {isEditingTitle ? (
+            <input
+              value={newTitle}
+              onChange={(e) => setNewTitle(e.target.value)}
+              onBlur={saveTitle}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') saveTitle();
+              }}
+              autoFocus
+              style={titleInputStyle}
+            />
+          ) : (
+            <span
+              onClick={() => setIsEditingTitle(true)}
+              style={{ cursor: 'pointer' }}
+            >
+              🎯 {arcTitle || 'Без назви'}
+            </span>
+          )}
+        </div>
       </div>
 
       <div style={{ flex: 1 }}>
@@ -148,7 +179,6 @@ const toolbarButton = {
   borderRadius: '6px',
   fontWeight: 'bold',
   cursor: 'pointer',
-  transition: 'background 0.2s ease',
 };
 
 const backButtonStyle = {
@@ -158,7 +188,14 @@ const backButtonStyle = {
 
 const arcInfoStyle = {
   marginLeft: 'auto',
-  fontStyle: 'italic',
-  color: '#636e72',
   fontSize: '1rem',
+  color: '#636e72',
+};
+
+const titleInputStyle = {
+  fontSize: '1rem',
+  padding: '0.25rem 0.5rem',
+  border: '1px solid #ccc',
+  borderRadius: '6px',
+  width: '200px',
 };
