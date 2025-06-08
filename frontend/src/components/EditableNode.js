@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Handle, Position } from 'reactflow';
 
-const EditableNode = ({ data, id }) => {
+const EditableNode = ({ data, id, selected }) => {
   const [editing, setEditing] = useState(false);
   const [label, setLabel] = useState(data.label);
 
@@ -31,7 +31,7 @@ const EditableNode = ({ data, id }) => {
   return (
     <div
       style={{
-        border: `2px solid ${borderColor}`,
+        border: selected ? '3px solid #0984e3' : `2px solid ${borderColor}`,
         padding: 10,
         borderRadius: 8,
         background,
@@ -39,7 +39,9 @@ const EditableNode = ({ data, id }) => {
         textAlign: 'center',
         fontWeight: 500,
         fontSize: '0.9rem',
-        boxShadow: '0 2px 5px rgba(0,0,0,0.1)',
+        boxShadow: selected ? '0 0 0 3px rgba(9,132,227,0.4)' : '0 2px 5px rgba(0,0,0,0.1)',
+        transition: '0.2s ease',
+        cursor: 'pointer',
       }}
       onDoubleClick={() => setEditing(true)}
     >
