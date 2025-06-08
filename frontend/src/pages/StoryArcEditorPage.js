@@ -43,6 +43,7 @@ export default function StoryArcEditorPage() {
   const [isEditingLabel, setIsEditingLabel] = useState(false);
 
   const [history, setHistory] = useState([]);
+  const [redoStack, setRedoStack] = useState([]);
   
   const onNodeLabelChange = useCallback(
   (id, newLabel) => {
@@ -144,14 +145,29 @@ export default function StoryArcEditorPage() {
 
   const pushToHistory = () => {
     setHistory((prev) => [...prev, { nodes, edges }]);
+    setRedoStack([]);
   };
 
   const handleUndo = () => {
     if (history.length === 0) return;
+
     const last = history[history.length - 1];
+    setRedoStack((prev) => [...prev, { nodes, edges }]); // 💾 поточне в redo
+
     setNodes(last.nodes);
     setEdges(last.edges);
     setHistory((prev) => prev.slice(0, -1));
+  };
+
+  const handleRedo = () => {
+    if (redoStack.length === 0) return;
+
+    const next = redoStack[redoStack.length - 1];
+    setHistory((prev) => [...prev, { nodes, edges }]); // поточне в history
+
+    setNodes(next.nodes);
+    setEdges(next.edges);
+    setRedoStack((prev) => prev.slice(0, -1));
   };
 
   useEffect(() => {
@@ -237,6 +253,10 @@ export default function StoryArcEditorPage() {
 
         <button style={toolbarButton} onClick={handleUndo} disabled={history.length === 0}>
           ↩️ Undo
+        </button>
+
+        <button style={toolbarButton} onClick={handleRedo} disabled={redoStack.length === 0}>
+          ↪️ Redo
         </button>
 
         <button style={toolbarButton} onClick={saveGraph}>
