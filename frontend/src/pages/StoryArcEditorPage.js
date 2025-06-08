@@ -88,19 +88,43 @@ export default function StoryArcEditorPage() {
     }
   };
 
-  useEffect(() => {
-    const loadArc = async () => {
-      try {
-        const data = await fetchStoryArc(arcId);
-        setArcTitle(data.title);
-        setNewTitle(data.title);
-      } catch (error) {
-        console.error('Помилка завантаження арки:', error);
-      }
-    };
+  const saveGraph = async () => {
+  try {
+    await updateStoryArc(arcId, {
+      graph_json: {
+        nodes,
+        edges,
+      },
+    });
+    alert('Граф збережено ✅');
+  } catch (error) {
+    console.error('Помилка збереження графа:', error);
+    alert('❌ Не вдалося зберегти граф');
+  }
+};
 
-    loadArc();
-  }, [arcId]);
+useEffect(() => {
+  const loadArc = async () => {
+    try {
+      const data = await fetchStoryArc(arcId);
+      setArcTitle(data.title);
+      setNewTitle(data.title);
+
+      // Якщо є збережений граф — відновлюємо
+      if (data.graph_json) {
+        setNodes(data.graph_json.nodes || []);
+        setEdges(data.graph_json.edges || []);
+      } else {
+        setNodes(initialNodes);
+        setEdges([]);
+      }
+    } catch (error) {
+      console.error('Помилка завантаження арки:', error);
+    }
+  };
+
+  loadArc();
+}, [arcId]);
 
   return (
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
@@ -118,6 +142,7 @@ export default function StoryArcEditorPage() {
         <button style={toolbarButton} onClick={() => addNode('Подія')}>
           + Подія
         </button>
+        <button style={toolbarButton} onClick={saveGraph}>💾 Зберегти граф</button>
 
         <div style={arcInfoStyle}>
           {isEditingTitle ? (

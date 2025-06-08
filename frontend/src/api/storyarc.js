@@ -18,7 +18,7 @@ export const createStoryArc = async (data) => {
 };
 
 export const updateStoryArc = async (id, data) => {
-  const res = await axios.put(`http://localhost:8000/api/story-arcs/${id}/`, data, getAuthHeader());
+  const res = await axios.patch(`http://localhost:8000/api/story-arcs/${id}/`, data, getAuthHeader());
   return res.data;
 };
 
