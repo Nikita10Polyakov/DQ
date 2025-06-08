@@ -7,5 +7,7 @@ class StoryArc(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
 
+    graph_json = models.JSONField(blank=True, null=True) 
+
     def __str__(self):
         return self.title
