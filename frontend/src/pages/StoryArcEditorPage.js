@@ -12,6 +12,9 @@ import 'reactflow/dist/style.css';
 import EditableNode from '../components/EditableNode';
 import { useParams, useNavigate } from 'react-router-dom';
 import { fetchStoryArc, updateStoryArc } from '../api/storyarc';
+import NodeSidebar from '../components/NodeSidebar';
+import { useReactFlow } from 'reactflow';
+import { ReactFlowProvider } from 'reactflow';
 
 const nodeTypes = { editable: EditableNode };
 let id = 2;
@@ -44,6 +47,8 @@ export default function StoryArcEditorPage() {
 
   const [history, setHistory] = useState([]);
   const [redoStack, setRedoStack] = useState([]);
+
+  const [selectedNode, setSelectedNode] = useState(null);
 
   const deepClone = (obj) => JSON.parse(JSON.stringify(obj));
 
@@ -136,6 +141,24 @@ export default function StoryArcEditorPage() {
     setEdges((eds) => eds.filter((e) => !edgesToRemove.some((r) => r.id === e.id)));
   }, [setEdges]);
 
+  const onNodeDataChange = (id, newData) => {
+    setNodes((nds) =>
+      nds.map((node) =>
+        node.id === id
+          ? {
+              ...node,
+              data: {
+                ...newData,
+                onChange: onNodeLabelChange,
+                onFocus: () => setIsEditingLabel(true),
+                onBlur: () => setIsEditingLabel(false),
+              },
+            }
+          : node
+      )
+    );
+  };
+
   const handleUndo = () => {
     if (history.length === 0) return;
     const last = history[history.length - 1];
@@ -200,21 +223,42 @@ export default function StoryArcEditorPage() {
 
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if ((e.key === 'Delete' || e.key === 'Backspace') && !isEditingLabel) {
+      const activeTag = document.activeElement?.tagName;
+      const isTyping = ['INPUT', 'TEXTAREA'].includes(activeTag);
+      if (isTyping || isEditingLabel) return;
+
+      if (e.key === 'Delete' || e.key === 'Backspace') {
         pushToHistory();
+
         if (selectedEdges.length > 0) {
-          setEdges((eds) => eds.filter((e) => !selectedEdges.some((sel) => sel.id === e.id)));
+          setEdges((eds) =>
+            eds.filter((e) => !selectedEdges.some((sel) => sel.id === e.id))
+          );
         }
+
         if (selectedNodes.length > 0) {
           const nodeIds = selectedNodes.map((n) => n.id);
           setNodes((nds) => nds.filter((n) => !nodeIds.includes(n.id)));
-          setEdges((eds) => eds.filter((e) => !nodeIds.includes(e.source) && !nodeIds.includes(e.target)));
+          setEdges((eds) =>
+            eds.filter((e) => !nodeIds.includes(e.source) && !nodeIds.includes(e.target))
+          );
         }
       }
     };
+
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [selectedNodes, selectedEdges, isEditingLabel]);
+
+
+  useEffect(() => {
+  if (!selectedNode) return;
+
+  const exists = nodes.some((n) => n.id === selectedNode.id);
+  if (!exists) {
+    setSelectedNode(null);
+  }
+}, [nodes, selectedNode]);
 
   return (
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
@@ -243,29 +287,40 @@ export default function StoryArcEditorPage() {
           )}
         </div>
       </div>
-      <div style={{ flex: 1 }}>
-        <ReactFlow
-          nodeTypes={nodeTypes}
-          nodes={nodes}
-          edges={edges}
-          onNodesChange={onNodesChange}
-          onEdgesChange={onEdgesChange}
-          onEdgesDelete={onEdgesDelete}
-          onConnect={onConnect}
-          fitView
-          selectNodesOnDrag={true}
-          nodesDraggable={true}
-          edgesUpdatable={true}
-          onSelectionChange={({ nodes, edges }) => {
-            setSelectedNodes(nodes);
-            setSelectedEdges(edges);
-          }}
-        >
-          <Controls />
-          <MiniMap />
-          <Background />
-        </ReactFlow>
-      </div>
+      <ReactFlowProvider>
+        <div style={{ flex: 1, position: 'relative' }} tabIndex={0}>
+          <ReactFlow
+            nodeTypes={nodeTypes}
+            nodes={nodes}
+            edges={edges}
+            onNodesChange={onNodesChange}
+            onEdgesChange={onEdgesChange}
+            onEdgesDelete={onEdgesDelete}
+            onConnect={onConnect}
+            fitView
+            selectNodesOnDrag={true}
+            nodesDraggable={true}
+            edgesUpdatable={true}
+            onNodeClick={(event, node) => {
+              setSelectedNode(node);
+            }}
+            onSelectionChange={({ nodes, edges }) => {
+              setSelectedNodes(nodes);
+              setSelectedEdges(edges);
+            }}
+          >
+            <Controls />
+            <MiniMap />
+            <Background />
+          </ReactFlow>
+          <NodeSidebar
+            node={selectedNode}
+            onChange={onNodeDataChange}
+            onClose={() => setSelectedNode(null)}
+            onAnyFieldFocus={() => setSelectedNodes([])}
+          />
+        </div>
+      </ReactFlowProvider>
     </div>
   );
 }
