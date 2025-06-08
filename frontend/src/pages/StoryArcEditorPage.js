@@ -44,9 +44,37 @@ export default function StoryArcEditorPage() {
 
   const [history, setHistory] = useState([]);
   const [redoStack, setRedoStack] = useState([]);
-  
-  const onNodeLabelChange = useCallback(
-  (id, newLabel) => {
+
+  const deepClone = (obj) => JSON.parse(JSON.stringify(obj));
+
+  const restoreNodeCallbacks = (nodeList) =>
+    nodeList.map((node) => ({
+      ...node,
+      data: {
+        ...node.data,
+        onChange: onNodeLabelChange,
+        onFocus: () => setIsEditingLabel(true),
+        onBlur: () => setIsEditingLabel(false),
+      },
+    }));
+
+  const pushToHistory = (currentNodes = nodes, currentEdges = edges) => {
+    const snapshot = {
+      nodes: deepClone(currentNodes),
+      edges: deepClone(currentEdges),
+    };
+
+    if (snapshot.nodes.length === 0 && snapshot.edges.length === 0) {
+      console.log('⛔ Пропущено: порожній граф');
+      return;
+    }
+
+    console.log('✅ Додано в історію:', snapshot);
+    setHistory((prev) => [...prev, snapshot]);
+    setRedoStack([]);
+  };
+
+  const onNodeLabelChange = useCallback((id, newLabel) => {
     pushToHistory();
     setNodes((nds) =>
       nds.map((node) =>
@@ -64,61 +92,67 @@ export default function StoryArcEditorPage() {
           : node
       )
     );
-  },
-  [setNodes]
-);
+  }, [setNodes]);
 
-  const addNode = useCallback(
-    (typeLabel) => {
-      pushToHistory(); // 💾 Зберігаємо перед зміною
-      const type = typeLabel === 'Сцена' ? 'scene' : typeLabel === 'NPC' ? 'npc' : 'event';
-      const newNode = {
-        id: getId(),
-        position: { x: Math.random() * 400 + 100, y: Math.random() * 300 + 100 },
-        data: {
-          label: typeLabel,
-          type,
-          onChange: onNodeLabelChange,
-          onFocus: () => setIsEditingLabel(true),
-          onBlur: () => setIsEditingLabel(false),
+  const addNode = useCallback((typeLabel) => {
+    const type = typeLabel === 'Сцена' ? 'scene' : typeLabel === 'NPC' ? 'npc' : 'event';
+    const newNode = {
+      id: getId(),
+      position: { x: Math.random() * 400 + 100, y: Math.random() * 300 + 100 },
+      data: {
+        label: typeLabel,
+        type,
+        onChange: onNodeLabelChange,
+        onFocus: () => setIsEditingLabel(true),
+        onBlur: () => setIsEditingLabel(false),
+      },
+      type: 'editable',
+    };
+
+    setNodes((nds) => {
+      const updated = [...nds, newNode];
+      pushToHistory(updated, edges);
+      return updated;
+    });
+  }, [setNodes, edges, onNodeLabelChange]);
+
+  const onConnect = useCallback((params) => {
+    pushToHistory();
+    setEdges((eds) =>
+      addEdge({
+        ...params,
+        markerEnd: {
+          type: MarkerType.ArrowClosed,
+          width: 20,
+          height: 20,
+          color: '#636e72',
         },
-        type: 'editable',
-      };
-      setNodes((nds) => [...nds, newNode]);
-    },
-    [setNodes, onNodeLabelChange]
-  );
+      }, eds)
+    );
+  }, [setEdges]);
 
-  const onConnect = useCallback(
-    (params) => {
-      pushToHistory();
-      setEdges((eds) =>
-        addEdge(
-          {
-            ...params,
-            markerEnd: {
-              type: MarkerType.ArrowClosed,
-              width: 20,
-              height: 20,
-              color: '#636e72',
-            },
-          },
-          eds
-        )
-      );
-    },
-    [setEdges]
-  );
+  const onEdgesDelete = useCallback((edgesToRemove) => {
+    pushToHistory();
+    setEdges((eds) => eds.filter((e) => !edgesToRemove.some((r) => r.id === e.id)));
+  }, [setEdges]);
 
-  const onEdgesDelete = useCallback(
-    (edgesToRemove) => {
-      pushToHistory();
-      setEdges((eds) =>
-        eds.filter((e) => !edgesToRemove.some((r) => r.id === e.id))
-      );
-    },
-    [setEdges]
-  );
+  const handleUndo = () => {
+    if (history.length === 0) return;
+    const last = history[history.length - 1];
+    setRedoStack((prev) => [...prev, { nodes: deepClone(nodes), edges: deepClone(edges) }]);
+    setNodes(restoreNodeCallbacks(last.nodes));
+    setEdges(last.edges);
+    setHistory((prev) => prev.slice(0, -1));
+  };
+
+  const handleRedo = () => {
+    if (redoStack.length === 0) return;
+    const next = redoStack[redoStack.length - 1];
+    setHistory((prev) => [...prev, { nodes: deepClone(nodes), edges: deepClone(edges) }]);
+    setNodes(restoreNodeCallbacks(next.nodes));
+    setEdges(next.edges);
+    setRedoStack((prev) => prev.slice(0, -1));
+  };
 
   const saveTitle = async () => {
     try {
@@ -143,33 +177,6 @@ export default function StoryArcEditorPage() {
     }
   };
 
-  const pushToHistory = () => {
-    setHistory((prev) => [...prev, { nodes, edges }]);
-    setRedoStack([]);
-  };
-
-  const handleUndo = () => {
-    if (history.length === 0) return;
-
-    const last = history[history.length - 1];
-    setRedoStack((prev) => [...prev, { nodes, edges }]); // 💾 поточне в redo
-
-    setNodes(last.nodes);
-    setEdges(last.edges);
-    setHistory((prev) => prev.slice(0, -1));
-  };
-
-  const handleRedo = () => {
-    if (redoStack.length === 0) return;
-
-    const next = redoStack[redoStack.length - 1];
-    setHistory((prev) => [...prev, { nodes, edges }]); // поточне в history
-
-    setNodes(next.nodes);
-    setEdges(next.edges);
-    setRedoStack((prev) => prev.slice(0, -1));
-  };
-
   useEffect(() => {
     const loadArc = async () => {
       try {
@@ -188,105 +195,55 @@ export default function StoryArcEditorPage() {
         console.error('Помилка завантаження арки:', error);
       }
     };
-
     loadArc();
   }, [arcId]);
 
   useEffect(() => {
-  const handleKeyDown = (e) => {
-    if ((e.key === 'Delete' || e.key === 'Backspace') && !isEditingLabel) {
-      pushToHistory();
-      // Видалення стрілок
-      if (selectedEdges.length > 0) {
-        setEdges((eds) =>
-          eds.filter((e) => !selectedEdges.some((sel) => sel.id === e.id))
-        );
+    const handleKeyDown = (e) => {
+      if ((e.key === 'Delete' || e.key === 'Backspace') && !isEditingLabel) {
+        pushToHistory();
+        if (selectedEdges.length > 0) {
+          setEdges((eds) => eds.filter((e) => !selectedEdges.some((sel) => sel.id === e.id)));
+        }
+        if (selectedNodes.length > 0) {
+          const nodeIds = selectedNodes.map((n) => n.id);
+          setNodes((nds) => nds.filter((n) => !nodeIds.includes(n.id)));
+          setEdges((eds) => eds.filter((e) => !nodeIds.includes(e.source) && !nodeIds.includes(e.target)));
+        }
       }
-
-      // Видалення вузлів
-      if (selectedNodes.length > 0) {
-        const nodeIds = selectedNodes.map((n) => n.id);
-        setNodes((nds) => nds.filter((n) => !nodeIds.includes(n.id)));
-        setEdges((eds) =>
-          eds.filter(
-            (e) => !nodeIds.includes(e.source) && !nodeIds.includes(e.target)
-          )
-        );
-      }
-    }
-  };
-
-  window.addEventListener('keydown', handleKeyDown);
-  return () => window.removeEventListener('keydown', handleKeyDown);
-}, [selectedNodes, selectedEdges, setNodes, setEdges]);
-
-  useEffect(() => {
-  const handleKeyDown = (e) => {
-    if (e.key === 'Delete' && selectedEdges.length > 0) {
-      setEdges((eds) =>
-        eds.filter((e) => !selectedEdges.some((sel) => sel.id === e.id))
-      );
-    }
-  };
-
-  window.addEventListener('keydown', handleKeyDown);
-  return () => window.removeEventListener('keydown', handleKeyDown);
-}, [selectedEdges, setEdges]);
-
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedNodes, selectedEdges, isEditingLabel]);
 
   return (
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
       <div style={toolbarStyle}>
-        <button onClick={() => navigate('/story-arcs')} style={backButtonStyle}>
-          ← Назад
-        </button>
-
-        <button style={toolbarButton} onClick={() => addNode('Сцена')}>
-          + Сцена
-        </button>
-        <button style={toolbarButton} onClick={() => addNode('NPC')}>
-          + NPC
-        </button>
-        <button style={toolbarButton} onClick={() => addNode('Подія')}>
-          + Подія
-        </button>
-
-        <button style={toolbarButton} onClick={handleUndo} disabled={history.length === 0}>
-          ↩️ Undo
-        </button>
-
-        <button style={toolbarButton} onClick={handleRedo} disabled={redoStack.length === 0}>
-          ↪️ Redo
-        </button>
-
-        <button style={toolbarButton} onClick={saveGraph}>
-          💾 Зберегти граф
-        </button>
-
+        <button onClick={() => navigate('/story-arcs')} style={backButtonStyle}>← Назад</button>
+        <button style={toolbarButton} onClick={() => addNode('Сцена')}>+ Сцена</button>
+        <button style={toolbarButton} onClick={() => addNode('NPC')}>+ NPC</button>
+        <button style={toolbarButton} onClick={() => addNode('Подія')}>+ Подія</button>
+        <button style={toolbarButton} onClick={handleUndo} disabled={history.length === 0}>↩️ Undo</button>
+        <button style={toolbarButton} onClick={handleRedo} disabled={redoStack.length === 0}>↪️ Redo</button>
+        <button style={toolbarButton} onClick={saveGraph}>💾 Зберегти граф</button>
         <div style={arcInfoStyle}>
           {isEditingTitle ? (
             <input
               value={newTitle}
               onChange={(e) => setNewTitle(e.target.value)}
               onBlur={saveTitle}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') saveTitle();
-              }}
+              onKeyDown={(e) => e.key === 'Enter' && saveTitle()}
               autoFocus
               style={titleInputStyle}
             />
           ) : (
-            <span
-              onClick={() => setIsEditingTitle(true)}
-              style={{ cursor: 'pointer' }}
-            >
+            <span onClick={() => setIsEditingTitle(true)} style={{ cursor: 'pointer' }}>
               🎯 {arcTitle || 'Без назви'}
             </span>
           )}
         </div>
       </div>
-
-      <div style={{ flex: 1 }} tabIndex={0}>
+      <div style={{ flex: 1 }}>
         <ReactFlow
           nodeTypes={nodeTypes}
           nodes={nodes}
@@ -303,7 +260,6 @@ export default function StoryArcEditorPage() {
             setSelectedNodes(nodes);
             setSelectedEdges(edges);
           }}
-
         >
           <Controls />
           <MiniMap />
@@ -313,8 +269,6 @@ export default function StoryArcEditorPage() {
     </div>
   );
 }
-
-// === СТИЛІ ===
 
 const toolbarStyle = {
   display: 'flex',
