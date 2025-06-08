@@ -38,6 +38,7 @@ export default function StoryArcEditorPage() {
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
 
   const [selectedEdges, setSelectedEdges] = useState([]);
+  const [selectedNodes, setSelectedNodes] = useState([]);
   
   const onNodeLabelChange = useCallback(
     (id, newLabel) => {
@@ -153,6 +154,32 @@ export default function StoryArcEditorPage() {
     loadArc();
   }, [arcId]);
 
+  useEffect(() => {
+  const handleKeyDown = (e) => {
+    if (e.key === 'Delete') {
+      // Видалення стрілок
+      if (selectedEdges.length > 0) {
+        setEdges((eds) =>
+          eds.filter((e) => !selectedEdges.some((sel) => sel.id === e.id))
+        );
+      }
+
+      // Видалення вузлів
+      if (selectedNodes.length > 0) {
+        const nodeIds = selectedNodes.map((n) => n.id);
+        setNodes((nds) => nds.filter((n) => !nodeIds.includes(n.id)));
+        setEdges((eds) =>
+          eds.filter(
+            (e) => !nodeIds.includes(e.source) && !nodeIds.includes(e.target)
+          )
+        );
+      }
+    }
+  };
+
+  window.addEventListener('keydown', handleKeyDown);
+  return () => window.removeEventListener('keydown', handleKeyDown);
+}, [selectedNodes, selectedEdges, setNodes, setEdges]);
 
   useEffect(() => {
   const handleKeyDown = (e) => {
@@ -226,9 +253,8 @@ export default function StoryArcEditorPage() {
           nodesDraggable={true}
           edgesUpdatable={true}
           onSelectionChange={({ nodes, edges }) => {
+            setSelectedNodes(nodes);
             setSelectedEdges(edges);
-            console.log('🔎 Виділено вузли:', nodes);
-            console.log('🔗 Виділено стрілки:', edges);
           }}
 
         >
