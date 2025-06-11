@@ -337,16 +337,16 @@ export default function StoryArcEditorPage() {
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
       <div style={toolbarStyle}>
         <button onClick={() => navigate('/story-arcs')} style={backButtonStyle}>← Назад</button>
-        <button style={toolbarButton} onClick={() => addNode('Сцена')}>+ Сцена</button>
-        <button style={toolbarButton} onClick={() => addNode('NPC')}>+ NPC</button>
-        <button style={toolbarButton} onClick={() => addNode('Подія')}>+ Подія</button>
-        <button style={toolbarButton} onClick={handleUndo} disabled={history.length === 0}>↩️ Undo</button>
-        <button style={toolbarButton} onClick={handleRedo} disabled={redoStack.length === 0}>↪️ Redo</button>
+        <button style={historyButton} onClick={handleUndo} disabled={history.length === 0}>↩️ Undo</button>
+        <button style={historyButton} onClick={handleRedo} disabled={redoStack.length === 0}>↪️ Redo</button>
+        <button style={creationButton } onClick={() => addNode('Сцена')}>📘 Сцена</button>
+        <button style={creationButton} onClick={() => addNode('NPC')}>🧙 NPC</button>
+        <button style={creationButton} onClick={() => addNode('Подія')}>🎲 Подія</button>
+        <button style={templateButton} onClick={() => setShowTemplateList((prev) => !prev)}>➕ З шаблону</button>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <button style={toolbarButton} onClick={saveGraph}>💾 Зберегти граф</button>
-          <button style={exportButtonStyle} onClick={handleExportJSON}>📥 Експорт у JSON</button>
+          <button style={actionButton } onClick={saveGraph}>💾 Зберегти граф</button>
+          <button style={exportButtonStyle } onClick={handleExportJSON}>📥 Експорт у JSON</button>
         </div>
-        <button style={toolbarButton} onClick={() => setShowTemplateList((prev) => !prev)}>➕ З шаблону</button>
         <div style={arcInfoStyle}>
           {isEditingTitle ? (
             <input
@@ -456,8 +456,13 @@ const toolbarButton = {
 };
 
 const backButtonStyle = {
-  ...toolbarButton,
-  background: '#b2bec3',
+  backgroundColor: '#b2bec3',
+  color: 'white',
+  border: 'none',
+  borderRadius: '6px',
+  padding: '6px 12px',
+  cursor: 'pointer',
+  fontWeight: 'bold'
 };
 
 const arcInfoStyle = {
@@ -475,11 +480,51 @@ const titleInputStyle = {
 };
 
 const exportButtonStyle = {
-  ...toolbarButton,
-  background: '#00b894',
+  backgroundColor: '#b39a98',
   color: 'white',
-  display: 'flex',
-  alignItems: 'center',
-  fontWeight: 'bold',
-  fontSize: '0.9rem',  
+  border: 'none',
+  borderRadius: '6px',
+  padding: '6px 12px',
+  cursor: 'pointer',
+  fontWeight: 'bold'
+};
+
+const creationButton = {
+  backgroundColor: '#6c5ce7',
+  color: 'white',
+  border: 'none',
+  borderRadius: '6px',
+  padding: '6px 12px',
+  cursor: 'pointer',
+  fontWeight: 'bold'
+};
+
+const historyButton = {
+  backgroundColor: '#9fc6ed',
+  color: 'white',
+  border: 'none',
+  borderRadius: '6px',
+  padding: '6px 12px',
+  cursor: 'pointer',
+  fontWeight: 'bold'
+};
+
+const actionButton = {
+  backgroundColor: '#4fab69',
+  color: 'white',
+  border: 'none',
+  borderRadius: '6px',
+  padding: '6px 12px',
+  cursor: 'pointer',
+  fontWeight: 'bold'
+};
+
+const templateButton = {
+  backgroundColor: '#b099e8',
+  color: 'white',
+  border: 'none',
+  borderRadius: '6px',
+  padding: '6px 12px',
+  cursor: 'pointer',
+  fontWeight: 'bold'
 };
