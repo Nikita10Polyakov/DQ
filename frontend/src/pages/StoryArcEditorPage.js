@@ -29,6 +29,36 @@ const initialNodes = [
   },
 ];
 
+const npcTemplates = [
+  { label: '🧙 Чаклунка', type: 'npc', description: 'Таємнича чаклунка з темного лісу' },
+  { label: '🛡️ Лицар', type: 'npc', description: 'Шляхетний лицар, який шукає істину' },
+  { label: '🧪 Алхімік', type: 'npc', description: 'Дивакуватий алхімік, що торгує зіллям' },
+  { label: '🧝 Ельф-лучник', type: 'npc', description: 'Мовчазний снайпер із лісів' },
+  { label: '💰 Торговець', type: 'npc', description: 'Гном, що торгує дивними артефактами' },
+  { label: '🕵️ Шпигун', type: 'npc', description: 'Зрадник, який працює на обидві сторони' },
+  { label: '🪓 Варвар', type: 'npc', description: 'Сильний, але прямолінійний воїн' },
+];
+
+const sceneTemplates = [
+  { label: '🏰 Таверна', type: 'scene', description: 'Місце, де починаються пригоди' },
+  { label: '🕍 Храм', type: 'scene', description: 'Священне місце з таємницями' },
+  { label: '🕸️ Підземелля', type: 'scene', description: 'Темний лабіринт із пастками' },
+  { label: '🏞️ Ринок', type: 'scene', description: 'Жваве місце з NPC та товаром' },
+  { label: '🗼 Вежа мага', type: 'scene', description: 'Локація з магічними головоломками' },
+  { label: '⛺ Лісова галявина', type: 'scene', description: 'Мирне місце... або ні?' },
+  { label: '🏚️ Покинута хата', type: 'scene', description: 'Щось тут не так...' },
+];
+
+const eventTemplates = [
+  { label: '⚔️ Засідка', type: 'event', description: 'Несподівана атака бандитів' },
+  { label: '❓ Зникнення', type: 'event', description: 'NPC зникає без сліду' },
+  { label: '🩸 Зрада', type: 'event', description: 'Союзник переходить на інший бік' },
+  { label: '🧪 Хвороба', type: 'event', description: 'Починається епідемія в місті' },
+  { label: '🔥 Вибух', type: 'event', description: 'Вибух руйнує локацію або портал' },
+  { label: '🌒 Ритуал', type: 'event', description: 'Темна магія починає діяти' },
+  { label: '🎭 Двійник', type: 'event', description: 'Хтось прикидається іншим' },
+];
+
 export default function StoryArcEditorPage() {
   const { id: arcId } = useParams();
   const navigate = useNavigate();
@@ -47,8 +77,9 @@ export default function StoryArcEditorPage() {
 
   const [history, setHistory] = useState([]);
   const [redoStack, setRedoStack] = useState([]);
-
   const [selectedNode, setSelectedNode] = useState(null);
+
+  const [showTemplateList, setShowTemplateList] = useState(false);
 
   const deepClone = (obj) => JSON.parse(JSON.stringify(obj));
 
@@ -62,6 +93,28 @@ export default function StoryArcEditorPage() {
         onBlur: () => setIsEditingLabel(false),
       },
     }));
+
+
+    const handleAddTemplate = (template) => {
+      const newNode = {
+        id: getId(),
+        type: 'editable',
+        position: { x: 250, y: 250 },
+        data: {
+          label: template.label,
+          type: template.type,
+          details: {
+            description: template.description,
+          },
+          onChange: onNodeLabelChange,
+          onFocus: () => setIsEditingLabel(true),
+          onBlur: () => setIsEditingLabel(false),
+        },
+      };
+      pushToHistory();
+      setNodes((nds) => [...nds, newNode]);
+      setShowTemplateList(false);
+    };
 
   const pushToHistory = (currentNodes = nodes, currentEdges = edges) => {
     const snapshot = {
@@ -293,6 +346,7 @@ export default function StoryArcEditorPage() {
           <button style={toolbarButton} onClick={saveGraph}>💾 Зберегти граф</button>
           <button style={exportButtonStyle} onClick={handleExportJSON}>📥 Експорт у JSON</button>
         </div>
+        <button style={toolbarButton} onClick={() => setShowTemplateList((prev) => !prev)}>➕ З шаблону</button>
         <div style={arcInfoStyle}>
           {isEditingTitle ? (
             <input
@@ -310,6 +364,39 @@ export default function StoryArcEditorPage() {
           )}
         </div>
       </div>
+      {showTemplateList && (
+        <div style={{
+          position: 'absolute',
+          top: '60px',
+          left: '1rem',
+          background: '#fff',
+          border: '1px solid #ccc',
+          padding: '0.5rem',
+          zIndex: 10,
+          maxHeight: '300px',
+          overflowY: 'auto',
+          boxShadow: '0 2px 6px rgba(0,0,0,0.2)'
+        }}>
+          <strong>🧙‍♂️ NPC</strong>
+          {npcTemplates.map((tpl, idx) => (
+            <div key={`npc-${idx}`} style={{ cursor: 'pointer', padding: '4px 8px' }} onClick={() => handleAddTemplate(tpl)}>
+              {tpl.label} — {tpl.description}
+            </div>
+          ))}
+          <strong>🏞️ Сцени</strong>
+          {sceneTemplates.map((tpl, idx) => (
+            <div key={`scene-${idx}`} style={{ cursor: 'pointer', padding: '4px 8px' }} onClick={() => handleAddTemplate(tpl)}>
+              {tpl.label} — {tpl.description}
+            </div>
+          ))}
+          <strong>🔥 Події</strong>
+          {eventTemplates.map((tpl, idx) => (
+            <div key={`event-${idx}`} style={{ cursor: 'pointer', padding: '4px 8px' }} onClick={() => handleAddTemplate(tpl)}>
+              {tpl.label} — {tpl.description}
+            </div>
+          ))}
+        </div>
+      )}
       <ReactFlowProvider>
         <div style={{ flex: 1, position: 'relative' }} tabIndex={0}>
           <ReactFlow
