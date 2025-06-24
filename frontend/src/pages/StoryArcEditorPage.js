@@ -253,6 +253,26 @@ export default function StoryArcEditorPage() {
     }
   };
 
+  const handleImportJSON = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const imported = JSON.parse(event.target.result);
+        setArcTitle(imported.title || '');
+        setNewTitle(imported.title || '');
+        setNodes(imported.nodes || []);
+        setEdges(imported.edges || []);
+      } catch (error) {
+        console.error('Помилка імпорту JSON:', error);
+        alert('❌ Некоректний файл JSON');
+      }
+    };
+    reader.readAsText(file);
+  };
+
   const handleExportJSON = () => {
   const data = {
     title: arcTitle,
@@ -346,6 +366,16 @@ export default function StoryArcEditorPage() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <button style={actionButton } onClick={saveGraph}>💾 Зберегти граф</button>
           <button style={exportButtonStyle } onClick={handleExportJSON}>📥 Експорт у JSON</button>
+          <label htmlFor="jsonUpload" style={importButtonStyle}>
+            📤 Імпорт з JSON
+          </label>
+          <input
+            id="jsonUpload"
+            type="file"
+            accept="application/json"
+            onChange={handleImportJSON}
+            style={{ display: 'none' }}
+          />
         </div>
         <div style={arcInfoStyle}>
           {isEditingTitle ? (
@@ -525,6 +555,16 @@ const templateButton = {
   border: 'none',
   borderRadius: '6px',
   padding: '6px 12px',
+  cursor: 'pointer',
+  fontWeight: 'bold'
+};
+
+const importButtonStyle = {
+  backgroundColor: '#b39a98',
+  color: 'white',
+  border: 'none',
+  borderRadius: '6px',
+  padding: '4px 10px',
   cursor: 'pointer',
   fontWeight: 'bold'
 };
